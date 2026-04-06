@@ -1,2 +1,6 @@
 # Credentials — never committed
 machines/**/.env_*
+
+machines/
+
+.qwen/
