@@ -42,7 +42,7 @@ tuneladora/
 │       ├── CLAUDE.md                  # Machine-specific AI instructions
 │       ├── CONTEXT.md                 # Machine-specific context (OS, purpose, history)
 │       ├── REFERENCES.md              # Machine-specific resources and notes
-│       ├── .env_<machine-name>        # SSH credentials (sourced, never read)
+│       ├── .env_<machine-name>        # Machine-specific environment variables
 │       ├── vault_<machine-name>/      # Obsidian vault for persistent memory
 │       │   ├── 00_INDEX.md            # Vault table of contents
 │       │   ├── 01_SYSTEM_INFO.md      # OS, hardware, network details
@@ -58,7 +58,7 @@ tuneladora/
 
 1. **Root-level files** (`CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`) define the global identity and context the LLM operates under.
 2. **Per-machine folders** under `machines/` each contain their own context files that extend (not replace) the root ones.
-3. **`.env_<machine-name>`** files hold SSH credentials as shell variables. The LLM sources them via `source .env_<machine-name>` so the values are available in the shell environment without being read or echoed.
+3. **SSH connections** are configured via `~/.ssh/config`. The LLM connects using `ssh <machine-name>` — no credential variables needed.
 4. **Obsidian vaults** (`vault_<machine-name>/`) serve as the machine's long-term memory. The LLM reads them before acting and writes to them after completing a task.
 5. **TOOLS/** holds executable scripts specific to a machine (backup scripts, deploy helpers, health checks, etc.).
 
@@ -83,7 +83,7 @@ tuneladora/
 | `CLAUDE.md` | Machine-specific AI instructions. Extends the root `CLAUDE.md` with rules scoped to this machine (e.g., "always use `apt` not `yum`"). |
 | `CONTEXT.md` | Machine-specific context: OS, purpose, installed services, known quirks. |
 | `REFERENCES.md` | Machine-specific documentation links, runbooks, vendor contacts. |
-| `.env_<machine-name>` | SSH credentials as shell variables. **Never read by the LLM — only sourced.** |
+| `.env_<machine-name>` | Machine-specific environment variables (non-SSH). Managed by the human operator. |
 | `vault_<machine-name>/` | Obsidian-compatible vault. The machine's persistent memory. |
 | `vault_<machine-name>/00_INDEX.md` | Table of contents linking to all vault notes. |
 | `vault_<machine-name>/01_SYSTEM_INFO.md` | OS version, hardware specs, IP addresses, network config. |
@@ -105,19 +105,12 @@ When the user says *"Add machine X"* or references a machine that doesn't exist 
    - `CLAUDE.md` — pre-filled with machine-name placeholder.
    - `CONTEXT.md` — empty sections for OS, purpose, etc.
    - `REFERENCES.md` — empty sections.
-3. **Create the `.env_<machine-name>` file** with placeholder variables:
-   ```bash
-   SSH_USER=
-   SSH_HOST=
-   SSH_PORT=22
-   SSH_KEY_PATH=
-   ```
-4. **Prompt the user** to fill in the `.env` file with real credentials.
-5. **Create the vault** directory with initial template notes (`00_INDEX.md` through `04_NOTES.md`).
-6. **Create the `TOOLS/` directory** with a `.gitkeep`.
-7. **Test the connection** by sourcing the `.env` file and running `ssh -o ConnectTimeout=5 $SSH_USER@$SSH_HOST -p $SSH_PORT -i $SSH_KEY_PATH "echo ok"`.
-8. **If successful**, populate `01_SYSTEM_INFO.md` by running basic discovery commands (`uname -a`, `cat /etc/os-release`, `df -h`, `free -h`, etc.).
-9. **Log the setup** in `03_TASK_LOG.md`.
+3. **Prompt the user** to configure `~/.ssh/config` with a Host entry for the machine (see README for setup steps).
+4. **Create the vault** directory with initial template notes (`00_INDEX.md` through `04_NOTES.md`).
+5. **Create the `TOOLS/` directory** with a `.gitkeep`.
+6. **Test the connection** by running `ssh -o ConnectTimeout=5 <machine-name> "echo ok"`.
+7. **If successful**, populate `01_SYSTEM_INFO.md` by running basic discovery commands (`uname -a`, `cat /etc/os-release`, `df -h`, `free -h`, etc.).
+8. **Log the setup** in `03_TASK_LOG.md`.
 
 ### 5.2 Task Execution
 
@@ -125,13 +118,12 @@ When the user says *"On machine X, do Y"*:
 
 1. **Navigate** to `machines/<machine-name>/`.
 2. **Read context**: load `CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`, and relevant vault notes.
-3. **Source credentials**: `source .env_<machine-name>` — do **not** `cat`, `echo`, or read the file.
-4. **Connect via SSH** and execute the task:
+3. **Connect via SSH** and execute the task:
    ```bash
-   ssh -p $SSH_PORT -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST "<commands>"
+   ssh <machine-name> "<commands>"
    ```
-5. **Verify** the result (check exit codes, confirm expected output).
-6. **Update the vault** (see 5.3).
+4. **Verify** the result (check exit codes, confirm expected output).
+5. **Update the vault** (see 5.3).
 
 ### 5.3 Vault Update Loop
 
@@ -155,36 +147,23 @@ After every task:
 
 ---
 
-## 6. Credential Handling
+## 6. SSH Connection Model
 
 ### Principles
 
-1. **The LLM must never read `.env` file contents.** It sources the file to load variables into the shell environment — it does not `cat`, `echo`, `print`, or otherwise display the file.
-2. **The LLM must never echo credential variables.** After sourcing, `$SSH_USER`, `$SSH_HOST`, `$SSH_KEY_PATH`, etc. are available in the shell but must never be printed.
-3. **The `.env` file is managed exclusively by the human user.** The LLM can create the file with empty placeholders, but the user fills in the values.
-
-### `.env` file format
-
-```bash
-# SSH credentials for <machine-name>
-# Managed by the human operator — do NOT read or display this file.
-SSH_USER=
-SSH_HOST=
-SSH_PORT=22
-SSH_KEY_PATH=
-```
+1. **SSH connections use `~/.ssh/config`.** Each machine has a Host entry configured by the human operator with hostname, user, key, and any other options.
+2. **The LLM connects using `ssh <machine-name>`.** No credential variables or `.env` sourcing is needed for SSH.
+3. **The LLM must never hardcode or display SSH credentials** (hosts, users, keys) in its output.
+4. **The human operator manages `~/.ssh/config`** exclusively. The LLM may remind the user to configure it but must not modify it.
 
 ### Safe usage pattern
 
 ```bash
-# Correct — source and use variables without displaying them
-source machines/<machine-name>/.env_<machine-name>
-ssh -p $SSH_PORT -i $SSH_KEY_PATH $SSH_USER@$SSH_HOST "uptime"
+# Correct — connect using the SSH config alias
+ssh <machine-name> "uptime"
 
-# FORBIDDEN — never do any of these
-cat .env_<machine-name>
-echo $SSH_USER
-printenv SSH_HOST
+# FORBIDDEN — never hardcode credentials
+ssh root@192.168.1.2 "uptime"
 ```
 
 ---
@@ -218,9 +197,8 @@ Each machine's vault (`vault_<machine-name>/`) uses a flat numbering scheme:
 When operating within Tuneladora, the LLM must:
 
 1. **Always read context before acting.** Load the machine's `CLAUDE.md`, `CONTEXT.md`, and relevant vault notes before executing any task.
-2. **Never read `.env` file contents.** Only `source` the file. Never `cat`, `echo`, `print`, or display credential values.
-3. **Never echo credential variables.** `$SSH_USER`, `$SSH_HOST`, `$SSH_KEY_PATH` must not appear in output.
-4. **Always update the vault after a task.** At minimum, append to `03_TASK_LOG.md`.
+2. **Connect using `ssh <machine-name>`.** Never hardcode or display SSH credentials (hosts, users, keys) in output.
+3. **Always update the vault after a task.** At minimum, append to `03_TASK_LOG.md`.
 5. **Ask before destructive actions.** Any command that deletes data, stops a production service, or modifies firewall rules requires explicit user confirmation.
 6. **Verify before reporting success.** Check exit codes and expected output before marking a task as complete.
 7. **Stay within scope.** Only operate on the machine the user has specified. Do not hop between machines unless explicitly instructed.
@@ -265,10 +243,9 @@ Number them sequentially and register them in `00_INDEX.md`.
 | Topic | Status | Notes |
 |-------|--------|-------|
 | **SSH key passphrase handling** | Open | Currently assumes unencrypted keys or `ssh-agent`. No mechanism for passphrase entry. |
-| **Multi-hop SSH / bastion hosts** | Open | Some machines may require `ProxyJump`. The `.env` format would need extension. |
+| **Multi-hop SSH / bastion hosts** | Open | Some machines may require `ProxyJump` in `~/.ssh/config`. |
 | **Vault search** | Idea | As vaults grow, a search or tagging mechanism may be needed. |
 | **Task rollback** | Idea | Storing rollback commands alongside task log entries for undo capability. |
 | **Parallel execution** | Out of scope | Running tasks on multiple machines simultaneously is not currently supported. |
 | **Notifications** | Out of scope | No mechanism for alerting the user of task completion or failure outside the terminal. |
 | **Vault sync / backup** | Idea | Vaults are local files. A git-based sync or backup strategy would improve durability. |
-| **`.env` encryption** | Idea | Encrypting `.env` files at rest (e.g., with `age` or `sops`) for additional security. |

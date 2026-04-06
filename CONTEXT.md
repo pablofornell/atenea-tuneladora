@@ -13,7 +13,7 @@ Tuneladora — an SSH connection hub operated by an LLM to manage multiple remot
 
 ## What to avoid
 
-- Reading or displaying `.env` file contents.
+- Hardcoding or displaying SSH credentials in output.
 - Acting on a machine without reading its context first.
 - Forgetting to update the vault after a task.
 - Making destructive changes without explicit user confirmation.

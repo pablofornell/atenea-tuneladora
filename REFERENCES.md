@@ -9,7 +9,7 @@ machines/webserver-prod/
 ├── CLAUDE.md                          # "Always use apt. Never restart nginx without checking config first."
 ├── CONTEXT.md                         # "Ubuntu 22.04 LTS, runs nginx + Node.js app, 4GB RAM"
 ├── REFERENCES.md                      # Links to the app's deploy docs
-├── .env_webserver-prod                # SSH_USER, SSH_HOST, SSH_PORT, SSH_KEY_PATH
+├── .env_webserver-prod                # Machine-specific environment variables
 ├── vault_webserver-prod/
 │   ├── 00_INDEX.md
 │   ├── 01_SYSTEM_INFO.md
