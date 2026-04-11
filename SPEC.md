@@ -48,7 +48,8 @@ tuneladora/
 │       │   ├── 01_SYSTEM_INFO.md      # OS, hardware, network details
 │       │   ├── 02_SERVICES.md         # Running services and their configs
 │       │   ├── 03_TASK_LOG.md         # Chronological log of all tasks performed
-│       │   └── 04_NOTES.md            # Free-form notes and observations
+│       │   ├── 04_NOTES.md            # Free-form notes and observations
+│       │   └── 05_SECURITY.md         # SSH keys, access policies, user accounts
 │       └── TOOLS/                     # Machine-specific scripts and utilities
 │           └── .gitkeep
 └── LICENSE
@@ -90,6 +91,7 @@ tuneladora/
 | `vault_<machine-name>/02_SERVICES.md` | List of services, their status, config file paths, ports. |
 | `vault_<machine-name>/03_TASK_LOG.md` | Chronological log of every task performed on this machine. |
 | `vault_<machine-name>/04_NOTES.md` | Free-form observations, warnings, and tips. |
+| `vault_<machine-name>/05_SECURITY.md` | SSH key fingerprints, access policies, user accounts, SSH restrictions. |
 | `TOOLS/` | Scripts and utilities specific to this machine. |
 
 ---
@@ -100,17 +102,48 @@ tuneladora/
 
 When the user says *"Add machine X"* or references a machine that doesn't exist yet:
 
+**Phase A — Scaffolding (automated):**
+
 1. **Create the machine folder:** `machines/<machine-name>/`
 2. **Create the context files** from templates:
    - `CLAUDE.md` — pre-filled with machine-name placeholder.
    - `CONTEXT.md` — empty sections for OS, purpose, etc.
    - `REFERENCES.md` — empty sections.
-3. **Prompt the user** to configure `~/.ssh/config` with a Host entry for the machine (see README for setup steps).
-4. **Create the vault** directory with initial template notes (`00_INDEX.md` through `04_NOTES.md`).
-5. **Create the `TOOLS/` directory** with a `.gitkeep`.
-6. **Test the connection** by running `ssh -o ConnectTimeout=5 <machine-name> "echo ok"`.
-7. **If successful**, populate `01_SYSTEM_INFO.md` by running basic discovery commands (`uname -a`, `cat /etc/os-release`, `df -h`, `free -h`, etc.).
-8. **Log the setup** in `03_TASK_LOG.md`.
+3. **Create the vault** directory with initial template notes (`00_INDEX.md` through `04_NOTES.md`).
+4. **Create the `TOOLS/` directory** with a `.gitkeep`.
+5. **Prompt the user** to configure initial SSH access with their personal user (see Phase B below).
+
+**Phase B — User configures initial SSH (manual, personal user):**
+
+The user sets up SSH access with their personal user (must have sudo). See `ADD_MACHINE.md` for detailed steps.
+
+**Phase C — User creates the `tuneladora` user (manual):**
+
+The user creates the dedicated `tuneladora` user on the server with sudo NOPASSWD:
+```bash
+sudo useradd -m -s /bin/bash tuneladora
+sudo passwd tuneladora
+sudo bash -c "echo 'tuneladora ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/tuneladora"
+```
+
+**Phase D — User installs the dedicated SSH key (manual):**
+
+Tuneladora generates a dedicated keypair (`~/.ssh/tuneladora`). The user copies it to the server:
+```bash
+ssh-copy-id -i ~/.ssh/tuneladora.pub tuneladora@<host>
+```
+
+**Phase E — Finalize (automated):**
+
+Once the user confirms the key is installed:
+
+1. **Harden SSH**: add `from="<LAN-subnet>.*"`, `no-agent-forwarding`, `no-X11-forwarding` to `~tuneladora/.ssh/authorized_keys`.
+2. **Disable password login** for `tuneladora`: `sudo passwd -l tuneladora`.
+3. **Update the user's `~/.ssh/config`** to use `User tuneladora` and `IdentityFile ~/.ssh/tuneladora`.
+4. **Test the connection**: `ssh -o ConnectTimeout=5 <machine-name> "whoami"` → expects `tuneladora`.
+5. **If successful**, populate `01_SYSTEM_INFO.md` by running basic discovery commands (`uname -a`, `cat /etc/os-release`, `df -h`, `free -h`, etc.).
+6. **Record admin users** in `01_SYSTEM_INFO.md` (tuneladora as primary, personal user as fallback).
+7. **Log the full setup** in `03_TASK_LOG.md`.
 
 ### 5.2 Task Execution
 
@@ -143,7 +176,8 @@ After every task:
 2. **Update `01_SYSTEM_INFO.md`** if the task changed system state (e.g., installed a package, changed network config).
 3. **Update `02_SERVICES.md`** if a service was added, removed, or reconfigured.
 4. **Add to `04_NOTES.md`** any observations, warnings, or tips for future tasks.
-5. **Update `00_INDEX.md`** if new notes were created.
+5. **Update `05_SECURITY.md`** if the task changed user accounts, SSH keys, access policies, or firewall rules.
+6. **Update `00_INDEX.md`** if new notes were created.
 
 ---
 
@@ -177,10 +211,11 @@ Each machine's vault (`vault_<machine-name>/`) uses a flat numbering scheme:
 | Note | Purpose |
 |------|---------|
 | `00_INDEX.md` | Links to all other notes in the vault. Acts as a table of contents. |
-| `01_SYSTEM_INFO.md` | Static system information: OS, kernel, hardware, IPs. Updated when system state changes. |
+| `01_SYSTEM_INFO.md` | Static system information: OS, kernel, hardware, IPs, admin users. Updated when system state changes. |
 | `02_SERVICES.md` | Running services, their ports, config paths, and current status. |
 | `03_TASK_LOG.md` | Append-only chronological log of every action taken on the machine. |
 | `04_NOTES.md` | Free-form notes, warnings, observations. |
+| `05_SECURITY.md` | SSH key fingerprints, access policies, user accounts, SSH restrictions. |
 
 ### Rules
 
@@ -213,7 +248,9 @@ When operating within Tuneladora, the LLM must:
 ### Adding a new machine
 
 1. Follow Workflow 5.1 (New Connection Setup). The LLM handles this autonomously when a new machine name is referenced.
-2. Alternatively, manually create the folder structure and fill in the files.
+2. The process includes creating a dedicated `tuneladora` user with sudo NOPASSWD and migrating SSH access to it.
+3. Alternatively, manually create the folder structure and fill in the files.
+4. See `ADD_MACHINE.md` for the detailed step-by-step workflow.
 
 ### Adding new tools
 
@@ -229,10 +266,10 @@ When operating within Tuneladora, the LLM must:
 
 ### Customizing the vault structure
 
-The default vault ships with four notes. Each machine can extend this with domain-specific notes:
-- `05_BACKUPS.md` — backup schedules, retention policies, restore procedures.
-- `05_CRON_JOBS.md` — scheduled tasks and their purposes.
-- `05_DEPLOY_HISTORY.md` — deployment log with versions and rollback notes.
+The default vault ships with five notes (`01_SYSTEM_INFO` through `05_SECURITY`). Each machine can extend this with domain-specific notes:
+- `06_BACKUPS.md` — backup schedules, retention policies, restore procedures.
+- `06_CRON_JOBS.md` — scheduled tasks and their purposes.
+- `06_DEPLOY_HISTORY.md` — deployment log with versions and rollback notes.
 
 Number them sequentially and register them in `00_INDEX.md`.
 
