@@ -318,10 +318,127 @@ When operating within Tuneladora, the LLM must:
 | Topic | Status | Notes |
 |-------|--------|-------|
 | **SSH key passphrase handling** | Open | Currently assumes unencrypted keys or `ssh-agent`. No mechanism for passphrase entry. |
-| **Multi-hop SSH / bastion hosts** | Open | Some machines may require `ProxyJump` in `~/.ssh/config`. |
+| **Multi-hop SSH / bastion hosts** | Resolved | Implemented via `ProxyJump` (LXC) and `ProxyCommand + docker exec` (Docker). See §11. |
 | **Vault search** | Idea | As vaults grow, a search or tagging mechanism may be needed. |
 | **Task rollback** | Partial | Rollback commands are now captured per-task in `03_TASK_LOG.md`. Automated rollback execution is not yet implemented. |
 | **Parallel execution** | Out of scope | Running tasks on multiple machines simultaneously is not currently supported. |
 | **Notifications** | Out of scope | No mechanism for alerting the user of task completion or failure outside the terminal. |
 | **Vault sync / backup** | Idea | Vaults are local files. A git-based sync or backup strategy would improve durability. |
 | **Minimum-privilege sudo** | Idea | `tuneladora ALL=(ALL) NOPASSWD: ALL` is convenient but broad. Scoping to specific commands improves security posture. |
+
+---
+
+## 11. Hierarchy Model
+
+### Node Types
+
+Every machine has a **type** declared in its `HIERARCHY.md` file:
+
+| Type | Description | Examples |
+|------|-------------|---------|
+| `bare-metal` | Physical server with direct network access | Home server, dedicated host |
+| `vm` | Virtual machine with its own IP (KVM/QEMU) | Proxmox QEMU VM |
+| `lxc` | Linux container hosted on a Proxmox node | Any `pct`-managed container |
+| `docker` | Docker container running on a parent host | Any `docker run`/compose container |
+
+### Parent–Child Relationships
+
+- Every node except root bare-metal nodes declares a `parent` in `HIERARCHY.md`.
+- A parent node tracks all its children in `vault_<parent>/06_CONTAINERS.md`.
+- The global `REGISTRY.md` at the repo root shows the full tree.
+- `children: []` in `HIERARCHY.md` lists child machine names for quick lookup.
+
+### HIERARCHY.md Structure
+
+Each machine folder contains a `HIERARCHY.md` file:
+
+```markdown
+# <machine-name> — Hierarchy
+
+## Node Type
+type: lxc             # bare-metal | vm | lxc | docker
+
+## Parent
+parent: hef-minipc-proxmox   # null if root node
+
+## Children
+children: []          # list of machine-names this node hosts
+
+## Connection Model
+connection_model: proxyjump   # direct | proxyjump | docker-exec
+
+## Container ID
+container_id: 101     # Proxmox VMID for lxc; container name/ID for docker; null otherwise
+
+## Notes
+*(connectivity quirks, port mappings, network bridge)*
+```
+
+### Connection Models
+
+#### `direct` — bare-metal and vm
+
+Standard SSH entry. The machine is reachable at its own IP:
+
+```
+Host <machine-name>
+  HostName <ip-or-hostname>
+  User tuneladora
+  IdentityFile ~/.ssh/tuneladora
+```
+
+#### `proxyjump` — lxc
+
+The LXC container has its own IP on the parent's bridge (e.g., `vmbr0`). SSH reaches it by jumping through the parent:
+
+```
+Host <container-name>
+  HostName <container-ip>
+  User tuneladora
+  IdentityFile ~/.ssh/tuneladora
+  ProxyJump <parent-name>
+```
+
+Discover the container IP:
+```bash
+ssh <parent-name> "pct exec <vmid> -- ip -4 addr show eth0 | grep inet"
+```
+
+#### `docker-exec` — docker
+
+Docker containers typically have no SSH daemon. Tuneladora connects by piping a shell through `docker exec` on the parent host. No SSH key or user setup is required inside the container:
+
+```
+Host <container-name>
+  HostName unused
+  ProxyCommand ssh <parent-name> docker exec -i <container-name> /bin/sh
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+```
+
+Commands issued via `ssh <container-name> "..."` are transparently routed through `docker exec`. The LLM uses this identically to any other machine connection.
+
+> **Security note:** `StrictHostKeyChecking no` is necessary because `docker exec` does not present an SSH host key. Scope the parent's `tuneladora` user to only the containers it needs to exec into if minimum-privilege is required.
+
+### AI Behavior Rules for Hierarchy
+
+When operating on a **child machine** (lxc or docker):
+
+1. **Read the parent's context first.** Load `machines/<parent>/HIERARCHY.md` and `machines/<parent>/vault_<parent>/06_CONTAINERS.md` before acting on the child.
+2. **Never manage a container's lifecycle through the child's connection.** Use the parent to start/stop/destroy containers (`pct start`, `docker restart`, etc.).
+3. **After adding or removing a child**, update the parent's `06_CONTAINERS.md` and the root `REGISTRY.md`.
+4. **For Docker containers**, commands run as the container's default user (typically `root`). Document the actual user in `HIERARCHY.md` Notes.
+
+### Scaffolding Containers
+
+Use `tools/new_machine.sh` with the `--type` and `--parent` flags:
+
+```bash
+# LXC container
+tools/new_machine.sh my-lxc --type lxc --parent hef-minipc-proxmox
+
+# Docker container
+tools/new_machine.sh my-app --type docker --parent hef-minipc-proxmox
+```
+
+Follow `ADD_CONTAINER.md` for the complete setup workflow.
