@@ -15,10 +15,10 @@ Adding a new machine has **five phases**:
 
 When you tell me *"add machine `<name>`"* I will:
 
-1. Run `tools/new_machine.sh <name>` to generate:
-   - `machines/<name>/` folder
+1. Run `tools/new_machine.sh <name> --type bare-metal` to generate:
+   - `machines/<name>/` folder (bare-metal machines live directly under `machines/`)
    - Context files: `CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`
-   - Vault: `vault_<name>/` with `00_INDEX.md` through `05_SECURITY.md`
+   - Vault: `vault/` with `00_INDEX.md` through `05_SECURITY.md`
    - `TOOLS/.gitkeep`
 2. Log the scaffolding in `03_TASK_LOG.md`.
 

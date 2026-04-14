@@ -1,24 +1,32 @@
 # References
 
-## Examples of good work
+## Examples of well-maintained machines
 
-A well-maintained machine folder looks like this:
+A bare-metal host with a nested VM:
 
 ```
-machines/webserver-prod/
-├── CLAUDE.md                          # "Always use apt. Never restart nginx without checking config first."
-├── CONTEXT.md                         # "Ubuntu 22.04 LTS, runs nginx + Node.js app, 4GB RAM, disk at 60%"
-├── REFERENCES.md                      # Links to the app's deploy docs
-├── .env_webserver-prod                # Machine-specific environment variables (non-SSH)
-├── vault_webserver-prod/
-│   ├── 00_INDEX.md                    # Table of contents linking all vault notes
-│   ├── 01_SYSTEM_INFO.md              # OS, hardware, IPs, admin users
-│   ├── 02_SERVICES.md                 # Running services, ports, config paths
-│   ├── 03_TASK_LOG.md                 # Append-only chronological task log
-│   ├── 04_NOTES.md                    # Observations, warnings, tips
-│   └── 05_SECURITY.md                 # SSH keys, user accounts, access policies
-└── TOOLS/
-    └── deploy.sh
+machines/
+├── MACHINE_NAME/                    # bare-metal (root node)
+│   ├── CLAUDE.md                    # Proxmox-specific rules
+│   ├── CONTEXT.md                   # Proxmox VE, production hypervisor
+│   ├── vault/                       # Obsidian vault
+│   │   ├── 00_INDEX.md
+│   │   ├── 01_SYSTEM_INFO.md
+│   │   ├── 02_SERVICES.md
+│   │   ├── 03_TASK_LOG.md
+│   │   ├── 04_NOTES.md
+│   │   ├── 05_SECURITY.md
+│   │   └── 06_CONTAINERS.md         # Inventory: hef-pam (VMID 100)
+│   ├── TOOLS/
+│   └── VMs/                         # Virtual machines
+│       └── MACHINE_NAME/
+│           ├── CLAUDE.md            # "Always use apt. Never restart openclaw without confirmation."
+│           ├── CONTEXT.md           # Ubuntu 24.04, Ollama + OpenClaw
+│           ├── vault/
+│           │   ├── 00_INDEX.md
+│           │   ├── 01_SYSTEM_INFO.md
+│           │   └── ...
+│           └── TOOLS/
 ```
 
 > Generate new machines with `tools/new_machine.sh <machine-name>` — never create the folder structure manually.

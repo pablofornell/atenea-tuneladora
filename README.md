@@ -88,19 +88,34 @@ Tuneladora will:
 
 ```
 machines/
-└── <machine-name>/
-    ├── CLAUDE.md                  # Machine-specific AI rules
-    ├── CONTEXT.md                 # OS, purpose, known quirks
-    ├── REFERENCES.md              # Docs, runbooks, vendor links
-    ├── .env_<machine-name>        # SSH credentials (sourced, never read)
-    ├── vault_<machine-name>/      # Obsidian vault — persistent memory
-    │   ├── 00_INDEX.md
-    │   ├── 01_SYSTEM_INFO.md      # Includes admin users table
-    │   ├── 02_SERVICES.md
-    │   ├── 03_TASK_LOG.md
-    │   ├── 04_NOTES.md
-    │   └── 05_SECURITY.md         # SSH keys, access policies, restrictions
-    └── TOOLS/                     # Machine-specific scripts
+├── <host>/                        # bare-metal host (root node)
+│   ├── CLAUDE.md                  # Machine-specific AI rules
+│   ├── CONTEXT.md                 # OS, purpose, known quirks
+│   ├── REFERENCES.md              # Docs, runbooks, vendor links
+│   ├── .env_<host>                # Non-SSH env variables
+│   ├── vault/                     # Obsidian vault — persistent memory
+│   │   ├── 00_INDEX.md
+│   │   ├── 01_SYSTEM_INFO.md
+│   │   ├── 02_SERVICES.md
+│   │   ├── 03_TASK_LOG.md
+│   │   ├── 04_NOTES.md
+│   │   ├── 05_SECURITY.md
+│   │   └── 06_CONTAINERS.md       # Inventory of VMs and containers
+│   ├── TOOLS/                     # Machine-specific scripts
+│   ├── VMs/                       # Virtual machines
+│   │   └── <vm-name>/
+│   │       ├── CLAUDE.md
+│   │       ├── CONTEXT.md
+│   │       ├── vault/
+│   │       │   └── ...
+│   │       └── TOOLS/
+│   └── CTs/                       # Containers
+│       ├── LXC/                   # Proxmox LXC containers
+│       │   └── <lxc-name>/
+│       │       └── ...
+│       └── Docker/                # Docker containers
+│           └── <docker-name>/
+│               └── ...
 ```
 
 ## License

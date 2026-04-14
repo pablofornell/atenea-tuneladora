@@ -31,6 +31,8 @@ The core problem it solves: managing many servers through an LLM assistant requi
 
 ## 3. Architecture Overview
 
+### Root bare-metal machines
+
 ```
 tuneladora/
 ├── CLAUDE.md              # Global AI identity and rules (single source of truth)
@@ -41,30 +43,54 @@ tuneladora/
 ├── tools/
 │   └── new_machine.sh     # Scaffolding script — generates a machine folder from templates
 └── machines/
-    └── <machine-name>/
+    └── <host-name>/       # bare-metal (root node)
         ├── CLAUDE.md                  # Machine-specific AI instructions
         ├── CONTEXT.md                 # Machine-specific context (OS, purpose, history)
         ├── REFERENCES.md              # Machine-specific resources and notes
-        ├── .env_<machine-name>        # Machine-specific environment variables (non-SSH)
-        ├── vault_<machine-name>/      # Obsidian vault for persistent memory
+        ├── .env_<host-name>           # Machine-specific environment variables (non-SSH)
+        ├── vault/                     # Obsidian vault for persistent memory
         │   ├── 00_INDEX.md            # Vault table of contents
         │   ├── 01_SYSTEM_INFO.md      # OS, hardware, network details
         │   ├── 02_SERVICES.md         # Running services and their configs
         │   ├── 03_TASK_LOG.md         # Chronological log of all tasks performed
         │   ├── 04_NOTES.md            # Free-form notes and observations
-        │   └── 05_SECURITY.md         # SSH keys, access policies, user accounts
-        └── TOOLS/                     # Machine-specific scripts and utilities
-            └── .gitkeep
+        │   ├── 05_SECURITY.md         # SSH keys, access policies, user accounts
+        │   └── 06_CONTAINERS.md       # Inventory of VMs and containers hosted here
+        ├── TOOLS/                     # Machine-specific scripts and utilities
+        │   └── .gitkeep
+        ├── VMs/                       # Virtual machines hosted on this node
+        │   └── <vm-name>/
+        │       ├── CLAUDE.md
+        │       ├── CONTEXT.md
+        │       ├── REFERENCES.md
+        │       ├── vault/
+        │       │   ├── 00_INDEX.md
+        │       │   ├── 01_SYSTEM_INFO.md
+        │       │   ├── 02_SERVICES.md
+        │       │   ├── 03_TASK_LOG.md
+        │       │   ├── 04_NOTES.md
+        │       │   └── 05_SECURITY.md
+        │       └── TOOLS/
+        │           └── .gitkeep
+        └── CTs/                       # Containers hosted on this node
+            ├── LXC/                   # Proxmox LXC containers
+            │   └── <lxc-name>/
+            │       └── ... (same structure)
+            └── Docker/                # Docker containers
+                └── <docker-name>/
+                    └── ... (same structure)
 ```
 
 > **Single source of truth:** `CLAUDE.md` contains all behavioral rules. `QWEN.md` is a redirect stub. Never duplicate rule content between them.
 
+> **Folder convention:** bare-metal machines live directly under `machines/`. Children are classified by type: VMs under `VMs/`, containers under `CTs/LXC/` or `CTs/Docker/`.
+
 ### How the pieces connect
 
 1. **Root-level files** (`CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`) define the global identity and context the LLM operates under.
-2. **Per-machine folders** under `machines/` each contain their own context files that extend (not replace) the root ones.
+2. **Per-machine folders** are nested hierarchically: a VM lives under its host's `VMs/` folder, an LXC container under its host's `CTs/LXC/` folder, and a Docker container under its host's `CTs/Docker/` folder. The LLM resolves the path by reading `REGISTRY.md` or the parent's `HIERARCHY.md`.
 3. **SSH connections** are configured via `~/.ssh/config`. The LLM connects using `ssh <machine-name>` — no credential variables needed.
-4. **Obsidian vaults** (`vault_<machine-name>/`) serve as the machine's long-term memory. The LLM reads them before acting and writes to them after completing a task.
+4. **Obsidian vaults** (`vault/`) serve as the machine's long-term memory. Each machine has its own `vault/` folder inside its directory. The LLM reads it before acting and writes to it after completing a task.
 5. **TOOLS/** holds executable scripts specific to a machine (backup scripts, deploy helpers, health checks, etc.).
 
 ---
@@ -83,7 +109,14 @@ tuneladora/
 | `tools/new_machine.sh` | Script that generates a machine folder from canonical templates. |
 | `machines/` | Parent directory for all machine-specific folders. |
 
-### Per-machine level (`machines/<machine-name>/`)
+### Per-machine level (folder path depends on type)
+
+| Type | Path |
+|------|------|
+| bare-metal | `machines/<name>/` |
+| vm | `machines/<host>/VMs/<name>/` |
+| lxc | `machines/<host>/CTs/LXC/<name>/` |
+| docker | `machines/<host>/CTs/Docker/<name>/` |
 
 | File / Folder | Purpose |
 |---------------|---------|
@@ -91,13 +124,13 @@ tuneladora/
 | `CONTEXT.md` | Machine-specific context: OS, purpose, installed services, known quirks. Must be populated during Phase E of setup. |
 | `REFERENCES.md` | Machine-specific documentation links, runbooks, vendor contacts. |
 | `.env_<machine-name>` | Machine-specific environment variables (non-SSH). Managed by the human operator. |
-| `vault_<machine-name>/` | Obsidian-compatible vault. The machine's persistent memory. |
-| `vault_<machine-name>/00_INDEX.md` | Table of contents linking to all vault notes. |
-| `vault_<machine-name>/01_SYSTEM_INFO.md` | OS version, hardware specs, IP addresses, network config. |
-| `vault_<machine-name>/02_SERVICES.md` | List of services, their status, config file paths, ports. |
-| `vault_<machine-name>/03_TASK_LOG.md` | Chronological log of every task performed on this machine. |
-| `vault_<machine-name>/04_NOTES.md` | Free-form observations, warnings, and tips. |
-| `vault_<machine-name>/05_SECURITY.md` | SSH key fingerprints, access policies, user accounts, SSH restrictions. |
+| `vault/` | Obsidian-compatible vault. The machine's persistent memory. |
+| `vault/00_INDEX.md` | Table of contents linking to all vault notes. |
+| `vault/01_SYSTEM_INFO.md` | OS version, hardware specs, IP addresses, network config. |
+| `vault/02_SERVICES.md` | List of services, their status, config file paths, ports. |
+| `vault/03_TASK_LOG.md` | Chronological log of every task performed on this machine. |
+| `vault/04_NOTES.md` | Free-form observations, warnings, and tips. |
+| `vault/05_SECURITY.md` | SSH key fingerprints, access policies, user accounts, SSH restrictions. |
 | `TOOLS/` | Scripts and utilities specific to this machine. |
 
 ---
@@ -156,7 +189,7 @@ Once the user confirms the key is installed:
 
 When the user says *"On machine X, do Y"*:
 
-1. **Navigate** to `machines/<machine-name>/`.
+1. **Resolve the path**: read `REGISTRY.md` or `machines/<host>/HIERARCHY.md` to find the machine's folder location. Navigate to it (e.g., `machines/<host>/VMs/<name>/` or `machines/<host>/CTs/LXC/<name>/`).
 2. **Read context**: load `CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`, and relevant vault notes.
 3. **Connect via SSH** and execute the task:
    ```bash
@@ -218,7 +251,7 @@ Use the result (e.g., `10.0.0.*`) in the `authorized_keys` `from=` restriction.
 
 ### Structure
 
-Each machine's vault (`vault_<machine-name>/`) uses a flat numbering scheme:
+Each machine's vault (`vault/`) uses a flat numbering scheme:
 
 | Note | Purpose |
 |------|---------|
@@ -295,7 +328,7 @@ When operating within Tuneladora, the LLM must:
 
 ### Adding new tools
 
-1. Place scripts in `machines/<machine-name>/TOOLS/`.
+1. Place scripts in the machine's `TOOLS/` folder (e.g., `machines/<host>/VMs/<name>/TOOLS/`).
 2. Document each tool with a comment header explaining its purpose, usage, and any dependencies.
 3. Reference the tool in the machine's `REFERENCES.md`.
 
@@ -344,7 +377,8 @@ Every machine has a **type** declared in its `HIERARCHY.md` file:
 ### Parent–Child Relationships
 
 - Every node except root bare-metal nodes declares a `parent` in `HIERARCHY.md`.
-- A parent node tracks all its children in `vault_<parent>/06_CONTAINERS.md`.
+- A parent node tracks all its children in `vault/06_CONTAINERS.md`.
+- Children are stored in subfolders by type: `VMs/<name>/` for VMs, `CTs/LXC/<name>/` for LXC containers, `CTs/Docker/<name>/` for Docker containers.
 - The global `REGISTRY.md` at the repo root shows the full tree.
 - `children: []` in `HIERARCHY.md` lists child machine names for quick lookup.
 
@@ -424,20 +458,23 @@ Commands issued via `ssh <container-name> "..."` are transparently routed throug
 
 When operating on a **child machine** (lxc or docker):
 
-1. **Read the parent's context first.** Load `machines/<parent>/HIERARCHY.md` and `machines/<parent>/vault_<parent>/06_CONTAINERS.md` before acting on the child.
+1. **Read the parent's context first.** Load the parent's `HIERARCHY.md` (at `machines/<host>/HIERARCHY.md` for bare-metal, or `machines/<grandparent>/VMs/<host>/HIERARCHY.md` if the parent is itself a child) and `vault/06_CONTAINERS.md` before acting on the child.
 2. **Never manage a container's lifecycle through the child's connection.** Use the parent to start/stop/destroy containers (`pct start`, `docker restart`, etc.).
-3. **After adding or removing a child**, update the parent's `06_CONTAINERS.md` and the root `REGISTRY.md`.
+3. **After adding or removing a child**, update the parent's `vault/06_CONTAINERS.md` and the root `REGISTRY.md`.
 4. **For Docker containers**, commands run as the container's default user (typically `root`). Document the actual user in `HIERARCHY.md` Notes.
 
 ### Scaffolding Containers
 
-Use `tools/new_machine.sh` with the `--type` and `--parent` flags:
+Use `tools/new_machine.sh` with the `--type` and `--parent` flags. The script places the new machine in the correct subfolder automatically:
 
 ```bash
-# LXC container
+# VM — creates machines/<parent>/VMs/<name>/
+tools/new_machine.sh my-vm --type vm --parent hef-minipc-proxmox
+
+# LXC container — creates machines/<parent>/CTs/LXC/<name>/
 tools/new_machine.sh my-lxc --type lxc --parent hef-minipc-proxmox
 
-# Docker container
+# Docker container — creates machines/<parent>/CTs/Docker/<name>/
 tools/new_machine.sh my-app --type docker --parent hef-minipc-proxmox
 ```
 

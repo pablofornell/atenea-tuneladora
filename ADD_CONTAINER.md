@@ -3,7 +3,7 @@
 This document describes the 4-phase workflow for adding an **LXC container** or **Docker container** as a child machine in Tuneladora. It complements `ADD_MACHINE.md`, which covers bare-metal and VM setup.
 
 **Prerequisites:**
-- The parent machine must already exist under `machines/<parent>/` and be fully operational (SSH working, tuneladora user configured).
+- The parent machine must already exist and be fully operational (SSH working, tuneladora user configured). Bare-metal hosts live at `machines/<host>/`, VMs at `machines/<grandparent>/VMs/<host>/`.
 - For LXC: the container must already exist in Proxmox (`pct list` on the parent to verify).
 - For Docker: the container must already be running (`docker ps` on the parent to verify).
 
@@ -14,14 +14,14 @@ This document describes the 4-phase workflow for adding an **LXC container** or 
 1. **Run `tools/new_machine.sh`** with the appropriate type and parent:
 
    ```bash
-   # For LXC containers:
+   # For LXC containers — creates machines/<parent>/CTs/LXC/<container-name>/
    tools/new_machine.sh <container-name> --type lxc --parent <parent-name>
 
-   # For Docker containers:
+   # For Docker containers — creates machines/<parent>/CTs/Docker/<container-name>/
    tools/new_machine.sh <container-name> --type docker --parent <parent-name>
    ```
 
-2. The script creates the canonical folder structure and prints the **SSH config snippet** to add to `~/.ssh/config`.
+2. The script creates the canonical folder structure under the correct subfolder and prints the **SSH config snippet** to add to `~/.ssh/config`.
 
 3. **Do not add the SSH config snippet yet** — wait until Phase B confirms the container's IP / name.
 
@@ -142,12 +142,12 @@ Once access is confirmed:
 
 4. **Update the parent's vault** — add the container to `06_CONTAINERS.md` in the parent's vault:
    ```markdown
-   | <container-name> | lxc | 101 | 192.168.1.X | ProxyJump | running | machines/<container-name> |
+   | <container-name> | lxc | 101 | 192.168.1.X | ProxyJump | running | machines/<host>/CTs/LXC/<container-name> |
    ```
 
 5. **Update `REGISTRY.md`** at the repo root to reflect the new node in the hierarchy tree.
 
-6. **Log the setup** in both `machines/<container-name>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
+6. **Log the setup** in both `<container-folder>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
 
 ---
 

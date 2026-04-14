@@ -6,23 +6,13 @@
 #
 # Options:
 #   --type    Node type: bare-metal (default), vm, lxc, docker
-#   --parent  Parent machine name (required for lxc and docker)
+#   --parent  Parent machine name (required for vm, lxc, and docker)
 #
-# Creates:
-#   machines/<machine-name>/
-#     CLAUDE.md
-#     CONTEXT.md
-#     REFERENCES.md
-#     HIERARCHY.md
-#     vault_<machine-name>/
-#       00_INDEX.md
-#       01_SYSTEM_INFO.md
-#       02_SERVICES.md
-#       03_TASK_LOG.md
-#       04_NOTES.md
-#       05_SECURITY.md
-#     TOOLS/
-#       .gitkeep
+# Creates the canonical folder and vault structure under the correct path:
+#   bare-metal → machines/<name>/
+#   vm         → machines/<parent>/VMs/<name>/
+#   lxc        → machines/<parent>/CTs/LXC/<name>/
+#   docker     → machines/<parent>/CTs/Docker/<name>/
 #
 # This script is the single source of truth for machine folder structure.
 # Run it instead of manually creating files to ensure consistency with SPEC.md.
@@ -81,8 +71,8 @@ esac
 
 # ── Validate parent requirement ────────────────────────────────────────────────
 
-if [[ "$MACHINE_TYPE" == "lxc" || "$MACHINE_TYPE" == "docker" ]] && [[ -z "$PARENT" ]]; then
-  echo "Error: --parent is required when --type is lxc or docker" >&2
+if [[ "$MACHINE_TYPE" != "bare-metal" ]] && [[ -z "$PARENT" ]]; then
+  echo "Error: --parent is required when --type is vm, lxc, or docker" >&2
   exit 1
 fi
 
@@ -95,9 +85,24 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MACHINE_DIR="$REPO_ROOT/machines/$MACHINE"
-VAULT_DIR="$MACHINE_DIR/vault_$MACHINE"
 DATE="$(date +%Y-%m-%d)"
+
+# Determine the subfolder based on type
+case "$MACHINE_TYPE" in
+  bare-metal) SUBDIR="" ;;
+  vm)         SUBDIR="VMs" ;;
+  lxc)        SUBDIR="CTs/LXC" ;;
+  docker)     SUBDIR="CTs/Docker" ;;
+esac
+
+# Build the full machine directory path
+if [[ -n "$PARENT" && -n "$SUBDIR" ]]; then
+  MACHINE_DIR="$REPO_ROOT/machines/$PARENT/$SUBDIR/$MACHINE"
+else
+  MACHINE_DIR="$REPO_ROOT/machines/$MACHINE"
+fi
+
+VAULT_DIR="$MACHINE_DIR/vault"
 
 # ── Guard: already exists ──────────────────────────────────────────────────────
 
@@ -108,10 +113,18 @@ fi
 
 # ── Guard: parent must exist (if specified) ────────────────────────────────────
 
-if [[ -n "$PARENT" ]] && [[ ! -d "$REPO_ROOT/machines/$PARENT" ]]; then
-  echo "Error: parent machine '$PARENT' not found at machines/$PARENT/" >&2
-  echo "       Add the parent machine first, or check the name." >&2
-  exit 1
+if [[ -n "$PARENT" ]]; then
+  # Resolve the parent directory path
+  if [[ -n "$SUBDIR" ]]; then
+    # Parent could be bare-metal or itself a child; check both possibilities
+    PARENT_DIR="$REPO_ROOT/machines/$PARENT"
+    if [[ ! -d "$PARENT_DIR" ]]; then
+      echo "Error: parent machine '$PARENT' not found." >&2
+      echo "       Expected at: machines/$PARENT/" >&2
+      echo "       (Or machines/<grandparent>/VMs/$PARENT/ if the parent is itself a child)" >&2
+      exit 1
+    fi
+  fi
 fi
 
 # ── Derive connection model ────────────────────────────────────────────────────
@@ -123,9 +136,14 @@ case "$MACHINE_TYPE" in
   docker)     CONNECTION_MODEL="docker-exec" ;;
 esac
 
+# ── Compute relative path for messages ─────────────────────────────────────────
+
+REL_PATH="${MACHINE_DIR#$REPO_ROOT/}"
+
 # ── Create structure ───────────────────────────────────────────────────────────
 
 echo "Creating machine: $MACHINE (type: $MACHINE_TYPE${PARENT:+, parent: $PARENT})"
+echo "Path: $REL_PATH"
 mkdir -p "$VAULT_DIR" "$MACHINE_DIR/TOOLS"
 touch "$MACHINE_DIR/TOOLS/.gitkeep"
 
@@ -307,10 +325,10 @@ cat > "$VAULT_DIR/03_TASK_LOG.md" << HEREDOC
 ## $DATE — Machine Scaffolded
 **Requested by:** user
 **Status:** success
-**Summary:** Created machine folder structure via \`tools/new_machine.sh $MACHINE --type $MACHINE_TYPE${PARENT:+ --parent $PARENT}\`.
+**Summary:** Created machine folder structure via \`tools/new_machine.sh $MACHINE --type $MACHINE_TYPE${PARENT:+ --parent $PARENT}\` at \`$REL_PATH\`.
 **Commands run:**
 - \`tools/new_machine.sh $MACHINE --type $MACHINE_TYPE${PARENT:+ --parent $PARENT}\`
-**Rollback:** \`rm -rf machines/$MACHINE\`
+**Rollback:** \`rm -rf "$REL_PATH"\`
 **Notes:** Awaiting setup before any server operations.
 HEREDOC
 
@@ -364,7 +382,7 @@ HEREDOC
 # ── Done ───────────────────────────────────────────────────────────────────────
 
 echo ""
-echo "Done. Structure created at: machines/$MACHINE/"
+echo "Done. Structure created at: $REL_PATH/"
 echo ""
 
 # Print SSH config snippet based on type
