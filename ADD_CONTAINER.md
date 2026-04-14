@@ -149,9 +149,7 @@ Once access is confirmed:
    | <container-name> | lxc | 101 | 192.168.1.X | ProxyJump | running | machines/<host>/CTs/LXC/<container-name> |
    ```
 
-5. **Update `REGISTRY.md`** at the repo root to reflect the new node in the hierarchy tree.
-
-6. **Log the setup** in both `<container-folder>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
+5. **Log the setup** in both `<container-folder>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
 
 ---
 

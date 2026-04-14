@@ -88,7 +88,7 @@ tuneladora/
 ### How the pieces connect
 
 1. **Root-level files** (`CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`) define the global identity and context the LLM operates under.
-2. **Per-machine folders** are nested hierarchically: a VM lives under its host's `VMs/` folder, an LXC container under its host's `CTs/LXC/` folder, and a Docker container under its host's `CTs/Docker/` folder. The LLM resolves the path by reading `REGISTRY.md` or the parent's `HIERARCHY.md`.
+2. **Per-machine folders** are nested hierarchically: a VM lives under its host's `VMs/` folder, an LXC container under its host's `CTs/LXC/` folder, and a Docker container under its host's `CTs/Docker/` folder. The LLM resolves the path by reading the parent's `HIERARCHY.md`.
 3. **SSH connections** are configured via `~/.ssh/config`. The LLM connects using `ssh <machine-name>` — no credential variables needed.
 4. **Obsidian vaults** (`vault/`) serve as the machine's long-term memory. Each machine has its own `vault/` folder inside its directory. The LLM reads it before acting and writes to it after completing a task.
 5. **TOOLS/** holds executable scripts specific to a machine (backup scripts, deploy helpers, health checks, etc.).
@@ -189,7 +189,7 @@ Once the user confirms the key is installed:
 
 When the user says *"On machine X, do Y"*:
 
-1. **Resolve the path**: read `REGISTRY.md` or `machines/<host>/HIERARCHY.md` to find the machine's folder location. Navigate to it (e.g., `machines/<host>/VMs/<name>/` or `machines/<host>/CTs/LXC/<name>/`).
+1. **Resolve the path**: read `machines/<host>/HIERARCHY.md` to find the machine's folder location. Navigate to it (e.g., `machines/<host>/VMs/<name>/` or `machines/<host>/CTs/LXC/<name>/`).
 2. **Read context**: load `CLAUDE.md`, `CONTEXT.md`, `REFERENCES.md`, and relevant vault notes.
 3. **Connect via SSH** and execute the task:
    ```bash
@@ -380,7 +380,6 @@ Every machine has a **type** declared in its `HIERARCHY.md` file:
 - Every node except root bare-metal nodes declares a `parent` in `HIERARCHY.md`.
 - A parent node tracks all its children in `vault/06_CONTAINERS.md`.
 - Children are stored in subfolders by type: `VMs/<name>/` for VMs, `CTs/LXC/<name>/` for LXC containers, `CTs/Docker/<name>/` for Docker containers.
-- The global `REGISTRY.md` at the repo root shows the full tree.
 - `children: []` in `HIERARCHY.md` lists child machine names for quick lookup.
 
 ### HIERARCHY.md Structure
@@ -461,7 +460,7 @@ When operating on a **child machine** (lxc or docker):
 
 1. **Read the parent's context first.** Load the parent's `HIERARCHY.md` (at `machines/<host>/HIERARCHY.md` for bare-metal, or `machines/<grandparent>/VMs/<host>/HIERARCHY.md` if the parent is itself a child) and `vault/06_CONTAINERS.md` before acting on the child.
 2. **Never manage a container's lifecycle through the child's connection.** Use the parent to start/stop/destroy containers (`pct start`, `docker restart`, etc.).
-3. **After adding or removing a child**, update the parent's `vault/06_CONTAINERS.md` and the root `REGISTRY.md`.
+3. **After adding or removing a child**, update the parent's `vault/06_CONTAINERS.md`.
 4. **For Docker containers**, commands run as the container's default user (typically `root`). Document the actual user in `HIERARCHY.md` Notes.
 
 ### Scaffolding Containers
