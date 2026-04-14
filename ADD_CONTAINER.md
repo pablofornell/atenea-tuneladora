@@ -92,7 +92,7 @@ ssh <parent-name> "pct exec <vmid> -- bash -c 'apt-get install -y openssh-server
 
 Add the SSH config snippet from Phase A output to `~/.ssh/config`, then:
 ```bash
-ssh-copy-id -i ~/.ssh/tuneladora.pub tuneladora@<container-name>
+ssh-copy-id -i ~/.ssh/tuneladora_<container-name>.pub tuneladora@<container-name>
 ```
 This works because `ProxyJump` routes through the parent transparently.
 
@@ -135,10 +135,14 @@ Once access is confirmed:
    ssh <container-name> "uname -a 2>/dev/null; cat /etc/os-release 2>/dev/null; df -h 2>/dev/null"
    ```
 
-3. **Harden SSH for LXC** (same as standard Phase E):
-   - Add `from="<subnet>"`, `no-agent-forwarding`, `no-X11-forwarding` to `~tuneladora/.ssh/authorized_keys`.
-   - Disable password login: `ssh <container-name> "sudo passwd -l tuneladora"`.
-   - Test: `ssh -o ConnectTimeout=5 <container-name> "whoami"` → expects `tuneladora`.
+3. **Harden SSH for LXC** — discover the subnet from the operator's current network, then apply:
+   ```bash
+   SUBNET=$(ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1)
+   PUBKEY=$(cat ~/.ssh/tuneladora_<container-name>.pub)
+   ssh <container-name> "echo 'from=\"$SUBNET\",no-agent-forwarding,no-X11-forwarding $PUBKEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+   ssh <container-name> "sudo passwd -l tuneladora"
+   ```
+   Test: `ssh -o ConnectTimeout=5 <container-name> "whoami"` → expects `tuneladora`.
 
 4. **Update the parent's vault** — add the container to `06_CONTAINERS.md` in the parent's vault:
    ```markdown

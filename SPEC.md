@@ -161,24 +161,24 @@ sudo bash -c "echo 'tuneladora ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/tunelad
 
 **Phase D — User installs the dedicated SSH key (manual):**
 
-Tuneladora generates a dedicated keypair (`~/.ssh/tuneladora`). The user copies it to the server:
+Tuneladora generates a dedicated keypair (`~/.ssh/tuneladora_<name>`). The user copies it to the server:
 ```bash
-ssh-copy-id -i ~/.ssh/tuneladora.pub tuneladora@<host>
+ssh-copy-id -i ~/.ssh/tuneladora_<name>.pub tuneladora@<host>
 ```
 
 **Phase E — Finalize (automated):**
 
 Once the user confirms the key is installed:
 
-1. **Discover the operator's LAN subnet** by inspecting the local network interface:
+1. **Discover the LAN subnet and harden SSH** — run locally (subnet is discovered from the operator's current network):
    ```bash
-   ip route | awk '/default/ {print $3}' | head -1
-   # or: ip -4 addr show scope global | awk '/inet / {print $2}' | head -1
+   SUBNET=$(ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1)
+   PUBKEY=$(cat ~/.ssh/tuneladora_<name>.pub)
+   ssh <name> "echo 'from=\"$SUBNET\",no-agent-forwarding,no-X11-forwarding $PUBKEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
    ```
-   Use the discovered subnet (e.g., `192.168.1.*`) for all SSH restrictions below.
-2. **Harden SSH**: add `from="<discovered-subnet>"`, `no-agent-forwarding`, `no-X11-forwarding` to `~tuneladora/.ssh/authorized_keys`.
-3. **Disable password login** for `tuneladora`: `sudo passwd -l tuneladora`.
-4. **Update `~/.ssh/config`** to use `User tuneladora` and `IdentityFile ~/.ssh/tuneladora`. The LLM is authorized to modify `~/.ssh/config` as part of machine setup and migration.
+   > **Network change note:** if the operator connects from a different LAN later, re-run this command from the new network to update the `from=` restriction.
+2. **Disable password login** for `tuneladora`: `ssh <name> "sudo passwd -l tuneladora"`.
+4. **Update `~/.ssh/config`** to use `User tuneladora` and `IdentityFile ~/.ssh/tuneladora_<name>`. The LLM is authorized to modify `~/.ssh/config` as part of machine setup and migration.
 5. **Test the connection**: `ssh -o ConnectTimeout=5 <machine-name> "whoami"` → expects `tuneladora`.
 6. **If successful**, populate `01_SYSTEM_INFO.md` by running basic discovery commands (`uname -a`, `cat /etc/os-release`, `df -h`, `free -h`, `lscpu | head -15`, `ip -4 addr show scope global`).
 7. **Populate `CONTEXT.md`** with a summary of OS, purpose, network, and known quirks derived from discovery.
@@ -236,14 +236,15 @@ ssh root@192.168.1.2 "uptime"
 
 ### LAN subnet discovery
 
-When hardening SSH (Phase E), discover the operator's subnet dynamically rather than hardcoding:
+When hardening SSH (Phase E), always discover the operator's subnet dynamically — never hardcode it. The canonical hardening command (run locally):
 
 ```bash
-# On the operator's machine, find the LAN interface's subnet
-ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1
+SUBNET=$(ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1)
+PUBKEY=$(cat ~/.ssh/tuneladora_<name>.pub)
+ssh <name> "echo 'from=\"$SUBNET\",no-agent-forwarding,no-X11-forwarding $PUBKEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
-Use the result (e.g., `10.0.0.*`) in the `authorized_keys` `from=` restriction.
+This discovers the subnet from the local machine's active network interface and writes it directly into `authorized_keys`. If the operator later changes networks (home → office, VPN, etc.), this command must be re-run from the new network to update the `from=` restriction — otherwise the connection will be blocked by the stale subnet.
 
 ---
 

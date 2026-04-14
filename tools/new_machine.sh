@@ -296,7 +296,7 @@ cat > "$VAULT_DIR/01_SYSTEM_INFO.md" << HEREDOC
 
 | User | SSH Key | Sudo | Notes |
 |------|---------|------|-------|
-| tuneladora | \`~/.ssh/tuneladora\` | NOPASSWD | Dedicated admin user |
+| tuneladora | \`~/.ssh/tuneladora_$MACHINE\` | NOPASSWD | Dedicated admin user |
 | *(personal)* | *(TBD)* | sudo (with password) | Personal fallback |
 HEREDOC
 
@@ -360,7 +360,7 @@ cat > "$VAULT_DIR/05_SECURITY.md" << HEREDOC
 
 | User | Key File | Fingerprint | Restrictions | Status |
 |------|----------|-------------|--------------|--------|
-| tuneladora | \`~/.ssh/tuneladora\` | *(TBD)* | \`from="<subnet>"\`, no-agent-forwarding, no-X11-forwarding | Pending |
+| tuneladora | \`~/.ssh/tuneladora_$MACHINE\` | *(TBD)* | \`from="<subnet>"\`, no-agent-forwarding, no-X11-forwarding | Pending |
 | *(personal)* | *(TBD)* | — | None | Fallback |
 
 ## User Accounts
@@ -393,7 +393,7 @@ case "$MACHINE_TYPE" in
     echo "Host $MACHINE"
     echo "  HostName <ip-or-hostname>"
     echo "  User tuneladora"
-    echo "  IdentityFile ~/.ssh/tuneladora"
+    echo "  IdentityFile ~/.ssh/tuneladora_$MACHINE"
     echo "──────────────────────────────────────────"
     echo ""
     echo "Next steps:"
@@ -406,7 +406,7 @@ case "$MACHINE_TYPE" in
     echo "Host $MACHINE"
     echo "  HostName <container-ip>"
     echo "  User tuneladora"
-    echo "  IdentityFile ~/.ssh/tuneladora"
+    echo "  IdentityFile ~/.ssh/tuneladora_$MACHINE"
     echo "  ProxyJump $PARENT"
     echo "──────────────────────────────────────────"
     echo ""
@@ -423,7 +423,7 @@ case "$MACHINE_TYPE" in
     echo "──────────────────────────────────────────"
     echo "Host $MACHINE"
     echo "  HostName unused"
-    echo "  ProxyCommand ssh $PARENT docker exec -i <container-name> /bin/sh"
+    echo "  ProxyCommand ssh $PARENT \"docker exec -i <container-name> sh -c 'if [ -x /bin/bash ]; then exec /bin/bash; else exec /bin/sh; fi'\""
     echo "  StrictHostKeyChecking no"
     echo "  UserKnownHostsFile /dev/null"
     echo "──────────────────────────────────────────"

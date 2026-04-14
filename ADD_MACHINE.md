@@ -73,10 +73,10 @@ When done, tell me *"tuneladora user created"*. I will proceed to Phase 4.
 
 ## Phase 4 — You install the dedicated SSH key
 
-I will generate a dedicated keypair (`~/.ssh/tuneladora`) and tell you to run:
+I will generate a dedicated keypair (`~/.ssh/tuneladora_<name>`) and tell you to run:
 
 ```bash
-ssh-copy-id -i ~/.ssh/tuneladora.pub tuneladora@<host>
+ssh-copy-id -i ~/.ssh/tuneladora_<name>.pub tuneladora@<host>
 ```
 
 This asks for the temporary password you set in Phase 3. When done, tell me *"key installed"*.
@@ -87,13 +87,15 @@ This asks for the temporary password you set in Phase 3. When done, tell me *"ke
 
 Once the `tuneladora` key is installed, I will:
 
-1. **Discover the LAN subnet** dynamically:
+1. **Discover the LAN subnet and harden SSH** — run these locally (the subnet is discovered from the operator's current network interface):
    ```bash
-   ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1
+   SUBNET=$(ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1)
+   PUBKEY=$(cat ~/.ssh/tuneladora_<name>.pub)
+   ssh <name> "echo 'from=\"$SUBNET\",no-agent-forwarding,no-X11-forwarding $PUBKEY' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
    ```
-2. **Harden SSH**: add `from="<discovered-subnet>"`, `no-agent-forwarding`, `no-X11-forwarding` to `~tuneladora/.ssh/authorized_keys`.
-3. **Disable password login** for `tuneladora`: `sudo passwd -l tuneladora`.
-4. **Update `~/.ssh/config`** to use `User tuneladora` and `IdentityFile ~/.ssh/tuneladora`.
+   > **Network change note:** if the operator later connects from a different LAN (e.g. office vs home), re-run this command from the new network to update the `from=` restriction. Otherwise SSH will be blocked.
+2. **Disable password login** for `tuneladora`: `ssh <name> "sudo passwd -l tuneladora"`.
+4. **Update `~/.ssh/config`** to use `User tuneladora` and `IdentityFile ~/.ssh/tuneladora_<name>`.
 5. **Test the connection**: `ssh <name> "whoami"` → should return `tuneladora`.
 6. **Discover system info** and populate `01_SYSTEM_INFO.md`.
 7. **Populate `CONTEXT.md`** with OS, purpose, network, and any quirks found during discovery.

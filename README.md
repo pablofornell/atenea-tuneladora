@@ -57,11 +57,11 @@ Then install an SSH key so Tuneladora can connect. You can either:
 - Let Tuneladora generate and install the key (recommended — see Phase 2), or
 - Do it manually:
   ```bash
-  ssh-keygen -t ed25519 -f ~/.ssh/tuneladora -C "tuneladora@<machine-name>"
+  ssh-keygen -t ed25519 -f ~/.ssh/tuneladora_<machine-name> -C "tuneladora@<machine-name>"
   ssh <machine-name> "
     sudo -u tuneladora mkdir -p /home/tuneladora/.ssh &&
     sudo -u tuneladora chmod 700 /home/tuneladora/.ssh &&
-    sudo tee /home/tuneladora/.ssh/authorized_keys <<< \"$(cat ~/.ssh/tuneladora.pub)\" &&
+    sudo tee /home/tuneladora/.ssh/authorized_keys <<< \"$(cat ~/.ssh/tuneladora_<machine-name>.pub)\" &&
     sudo -u tuneladora chmod 600 /home/tuneladora/.ssh/authorized_keys &&
     sudo -u tuneladora chown tuneladora:tuneladora /home/tuneladora/.ssh/authorized_keys
   "
