@@ -168,6 +168,12 @@ connection_model: $CONNECTION_MODEL
 # For lxc: Proxmox VMID (e.g. 101). For docker: container name or ID.
 container_id: null
 
+## Dependencies
+# Service-level dependencies with other machines (not infrastructure hierarchy).
+# Format: "- <machine-name>: <role> — <what this machine uses it for>"
+# Example: "- hef-nas-4800: backup destination — restic repo at /backups/restic/this-machine"
+dependencies: []
+
 ## Notes
 *(Populate during setup: IP address, network bridge, port mappings, connectivity quirks)*
 HEREDOC
@@ -248,6 +254,7 @@ cat > "$VAULT_DIR/00_INDEX.md" << HEREDOC
 | [[03_TASK_LOG]] | Chronological log of all tasks performed |
 | [[04_NOTES]] | Free-form observations, warnings, scope limits |
 | [[05_SECURITY]] | SSH access policies, user accounts, restrictions |
+| [[06_BACKUPS]] | Backup jobs, retention, restore procedures, credentials location |
 
 ## Status
 
@@ -377,6 +384,53 @@ cat > "$VAULT_DIR/05_SECURITY.md" << HEREDOC
 ## Audit Notes
 
 - $DATE: Machine scaffolded. SSH setup pending.
+HEREDOC
+
+# ── 06_BACKUPS.md ──────────────────────────────────────────────────────────────
+
+cat > "$VAULT_DIR/06_BACKUPS.md" << HEREDOC
+# $MACHINE — Backups
+
+> Last updated: $DATE (scaffolded — populate when backups are configured)
+
+## Backup Jobs
+
+*(Populate when a backup job is configured for this machine)*
+
+| Job | Tool | Source | Destination | Schedule | Status |
+|-----|------|--------|-------------|----------|--------|
+| *(TBD)* | *(TBD)* | *(TBD)* | *(TBD)* | *(TBD)* | *(TBD)* |
+
+## Backup Role
+
+- **As source:** *(does this machine produce backups of its data? describe what and where)*
+- **As destination:** *(does this machine receive backups from others? describe what and from whom)*
+
+## Credentials & Keys
+
+*(List all secrets required to access or decrypt backups — never store the values here, only the paths)*
+
+| Secret | Location | Notes |
+|--------|----------|-------|
+| *(TBD)* | *(TBD)* | *(TBD)* |
+
+> ⚠️ If any encryption key is lost, the backup becomes unrecoverable. Ensure keys are stored in at least two locations.
+
+## Restore Procedure
+
+*(Populate with exact commands — this section is meant to be actionable under pressure)*
+
+\`\`\`bash
+# Step-by-step restore commands go here
+\`\`\`
+
+## Retention Policy
+
+*(Describe what is kept and for how long)*
+
+## History
+
+- $DATE: File scaffolded. No backups configured yet.
 HEREDOC
 
 # ── Done ───────────────────────────────────────────────────────────────────────

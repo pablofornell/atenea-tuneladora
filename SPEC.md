@@ -55,6 +55,7 @@ tuneladora/
         │   ├── 03_TASK_LOG.md         # Chronological log of all tasks performed
         │   ├── 04_NOTES.md            # Free-form notes and observations
         │   ├── 05_SECURITY.md         # SSH keys, access policies, user accounts
+        │   ├── 06_BACKUPS.md          # Backup jobs, retention, restore procedures, credentials
         │   └── 06_CONTAINERS.md       # Inventory of VMs and containers hosted here
         ├── TOOLS/                     # Machine-specific scripts and utilities
         │   └── .gitkeep
@@ -131,6 +132,7 @@ tuneladora/
 | `vault/03_TASK_LOG.md` | Chronological log of every task performed on this machine. |
 | `vault/04_NOTES.md` | Free-form observations, warnings, and tips. |
 | `vault/05_SECURITY.md` | SSH key fingerprints, access policies, user accounts, SSH restrictions. |
+| `vault/06_BACKUPS.md` | Backup jobs (source and destination roles), retention policy, credentials location, and step-by-step restore procedure. Always populate when any backup is configured involving this machine. |
 | `TOOLS/` | Scripts and utilities specific to this machine. |
 
 ---
@@ -256,12 +258,13 @@ Each machine's vault (`vault/`) uses a flat numbering scheme:
 
 | Note | Purpose |
 |------|---------|
-| `00_INDEX.md` | Links to all other notes in the vault. Acts as a table of contents. |
+| `00_INDEX.md` | Links to all other notes in the vault. Acts as a table of contents. **Keep up to date** — add a row whenever a new vault note is created. |
 | `01_SYSTEM_INFO.md` | Static system information: OS, kernel, hardware, IPs, admin users. Updated when system state changes. |
 | `02_SERVICES.md` | Running services, their ports, config paths, and current status. |
 | `03_TASK_LOG.md` | Append-only chronological log of every action taken on the machine. |
 | `04_NOTES.md` | Free-form notes, warnings, observations. |
 | `05_SECURITY.md` | SSH key fingerprints, access policies, user accounts, SSH restrictions. |
+| `06_BACKUPS.md` | **Standard note — always create when any backup is configured.** Documents: backup jobs, schedule, tool, source/destination, retention, credentials location, and step-by-step restore procedure. Populate for both the source machine and the destination machine. |
 
 ### Rules
 
@@ -283,10 +286,12 @@ Every entry in `03_TASK_LOG.md` follows this structure:
 **Commands run:**
 - `command 1`
 - `command 2`
-**Rollback:**
-- `rollback command 1`  ← omit section if not applicable
+**Rollback:** How to undo this task completely.
+- `rollback command 1`  ← use "N/A — not reversible" or "N/A — informational" if truly not applicable
 **Notes:** Anything notable, unexpected output, or warnings for future tasks.
 ```
+
+> **Rollback is mandatory.** Every entry must include a Rollback section. If the task is not reversible, write "N/A — not reversible" and explain why. Omitting rollback instructions makes incident recovery harder.
 
 ### Task log rotation
 
@@ -339,10 +344,31 @@ When operating within Tuneladora, the LLM must:
 2. Add it to `00_INDEX.md`.
 3. Follow the same Markdown conventions as existing notes.
 
+### Adding backup documentation
+
+When any backup job is configured (regardless of direction — source or destination):
+
+1. Create `vault/06_BACKUPS.md` in the machine's vault if it doesn't exist.
+2. Populate both the **source machine** and the **destination machine** vaults.
+3. Update `HIERARCHY.md` → `dependencies` on both machines to reflect the cross-machine relationship.
+4. Update `vault/00_INDEX.md` to include the new note.
+
+Key sections that must always be present in `06_BACKUPS.md`:
+- The exact restore commands (actionable under pressure, not just conceptual)
+- The location of any encryption keys or passwords (never the values themselves)
+- A warning if losing the key makes the backup unrecoverable
+
+### Adding machines that are NAS appliances or non-standard Linux
+
+Standard Linux machines follow `ADD_MACHINE.md`. For appliances with proprietary OS (NAS, routers, etc.), see `ADD_NAS.md` for adapted workflows. Notable differences:
+- SSH access restrictions may be enforced by the appliance OS (group membership, ForceCommand wrappers)
+- File transfer protocols (rsync, SFTP, SCP) may be wrapped and restricted to registered shares
+- Kernel and package management differ from standard Debian/Ubuntu
+
 ### Common additional vault notes
 
-- `06_BACKUPS.md` — backup schedules, retention policies, restore procedures.
-- `06_CRON_JOBS.md` — scheduled tasks and their purposes.
+- `06_BACKUPS.md` — **standard** — backup jobs, retention, restore procedures, credentials location.
+- `06_CRON_JOBS.md` — scheduled tasks and their purposes (if not covered in 06_BACKUPS).
 - `06_DEPLOY_HISTORY.md` — deployment log with versions and rollback notes.
 
 ---
@@ -403,6 +429,15 @@ connection_model: proxyjump   # direct | proxyjump | docker-exec
 
 ## Container ID
 container_id: 101     # Proxmox VMID for lxc; container name/ID for docker; null otherwise
+
+## Dependencies
+# Service-level dependencies with other machines (not infrastructure hierarchy).
+# Used to track cross-machine relationships like backups, DNS, reverse proxies.
+# Format: "- <machine-name>: <role> — <what this machine uses it for>"
+dependencies: []
+# Example:
+# - hef-nas-4800: backup destination — restic repo at sftp:.../backups/restic/vaultwarden
+# - hef-dns: dns resolver — provides .home.lan resolution
 
 ## Notes
 *(connectivity quirks, port mappings, network bridge)*
