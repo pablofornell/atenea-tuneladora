@@ -419,7 +419,7 @@ Each machine folder contains a `HIERARCHY.md` file:
 type: lxc             # bare-metal | vm | lxc | docker
 
 ## Parent
-parent: hef-minipc-proxmox   # null if root node
+parent: hef-proxmox   # null if root node
 
 ## Children
 children: []          # list of machine-names this node hosts
@@ -504,13 +504,13 @@ Use `tools/new_machine.sh` with the `--type` and `--parent` flags. The script pl
 
 ```bash
 # VM — creates machines/<parent>/VMs/<name>/
-tools/new_machine.sh my-vm --type vm --parent hef-minipc-proxmox
+tools/new_machine.sh my-vm --type vm --parent hef-proxmox
 
 # LXC container — creates machines/<parent>/CTs/LXC/<name>/
-tools/new_machine.sh my-lxc --type lxc --parent hef-minipc-proxmox
+tools/new_machine.sh my-lxc --type lxc --parent hef-proxmox
 
 # Docker container — creates machines/<parent>/CTs/Docker/<name>/
-tools/new_machine.sh my-app --type docker --parent hef-minipc-proxmox
+tools/new_machine.sh my-app --type docker --parent hef-proxmox
 ```
 
 Follow `ADD_CONTAINER.md` for the complete setup workflow.
@@ -537,9 +537,9 @@ Orchestrator [Sonnet]
   Applies vault updates
   Reports to user
   │
-  ├── Sub-agent [Haiku] — hef-minipc-proxmox
-  │     Reads: machines/hef-minipc-proxmox/{CLAUDE.md,CONTEXT.md,HIERARCHY.md,vault/}
-  │     Executes: ssh hef-minipc-proxmox "..."
+  ├── Sub-agent [Haiku] — hef-proxmox
+  │     Reads: machines/hef-proxmox/{CLAUDE.md,CONTEXT.md,HIERARCHY.md,vault/}
+  │     Executes: ssh hef-proxmox "..."
   │     Returns: status + commands_run + output + vault_updates
   │
   ├── Sub-agent [Haiku] — hef-pam

@@ -60,7 +60,7 @@ Tuneladora runs on Claude Code, which has access to the `Agent` tool for spawnin
 ### Sub-agent prompt protocol
 
 Every sub-agent prompt must include:
-1. `machine_path` — canonical folder (e.g. `machines/hef-minipc-proxmox/CTs/LXC/hef-caddy/`)
+1. `machine_path` — canonical folder (e.g. `machines/hef-proxmox/CTs/LXC/hef-caddy/`)
 2. `task` — specific description of what to do
 3. `context_files` — which files to read before acting (`CLAUDE.md`, `CONTEXT.md`, `HIERARCHY.md`, relevant vault notes)
 4. `return_format` — the structure expected back
