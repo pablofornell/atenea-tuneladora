@@ -121,12 +121,14 @@ ssh <container-name> "which bash python3 curl 2>/dev/null || true"
 
 Once access is confirmed:
 
-1. **Update `HIERARCHY.md`** with the real container_id and any connectivity notes:
+> **Multi-agent note:** Step 1 is sequential (needs Phase B data). Steps 2 and 3 are independent and run as parallel Haiku sub-agents. Steps 4 and 5 are sequential after 2 and 3 complete. See SPEC.md §12.
+
+1. **[SEQUENTIAL]** **Update `HIERARCHY.md`** with the real container_id and any connectivity notes:
    ```markdown
    container_id: 101   # (LXC VMID) or my-app-container (Docker)
    ```
 
-2. **Populate `CONTEXT.md`** and vault notes via discovery:
+2. **[PARALLEL]** **Populate `CONTEXT.md`** and vault notes via discovery:
    ```bash
    # For LXC (standard SSH):
    ssh <container-name> "uname -a && cat /etc/os-release && df -h && free -h && ip -4 addr show scope global"
@@ -135,7 +137,7 @@ Once access is confirmed:
    ssh <container-name> "uname -a 2>/dev/null; cat /etc/os-release 2>/dev/null; df -h 2>/dev/null"
    ```
 
-3. **Harden SSH for LXC** — discover the subnet from the operator's current network, then apply:
+3. **[PARALLEL]** **Harden SSH for LXC** — discover the subnet from the operator's current network, then apply:
    ```bash
    SUBNET=$(ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1)
    PUBKEY=$(cat ~/.ssh/tuneladora_<container-name>.pub)
@@ -144,12 +146,12 @@ Once access is confirmed:
    ```
    Test: `ssh -o ConnectTimeout=5 <container-name> "whoami"` → expects `tuneladora`.
 
-4. **Update the parent's vault** — add the container to `06_CONTAINERS.md` in the parent's vault:
+4. **[SEQUENTIAL — after 2 and 3]** **Update the parent's vault** — add the container to `06_CONTAINERS.md` in the parent's vault:
    ```markdown
    | <container-name> | lxc | 101 | 192.168.1.X | ProxyJump | running | machines/<host>/CTs/LXC/<container-name> |
    ```
 
-5. **Log the setup** in both `<container-folder>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
+5. **[SEQUENTIAL — after 2 and 3]** **Log the setup** in both `<container-folder>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
 
 ---
 

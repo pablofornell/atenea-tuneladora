@@ -83,6 +83,8 @@ ssh <name> "echo ok && whoami"
 
 Same as `ADD_MACHINE.md` Phase 5 (steps 6–9): discover OS, hardware, network, populate vault.
 
+> **Multi-agent note:** Once SSH connection is confirmed (step 5), launch discovery (01_SYSTEM_INFO.md), CONTEXT.md population, and 05_SECURITY.md update as parallel Haiku sub-agents. Log the full setup (03_TASK_LOG.md) after all three complete. See SPEC.md §12.
+
 ---
 
 ## UGOS-specific: File transfer restrictions

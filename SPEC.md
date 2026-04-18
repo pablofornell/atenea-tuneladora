@@ -381,7 +381,7 @@ Standard Linux machines follow `ADD_MACHINE.md`. For appliances with proprietary
 | **Multi-hop SSH / bastion hosts** | Resolved | Implemented via `ProxyJump` (LXC) and `ProxyCommand + docker exec` (Docker). See §11. |
 | **Vault search** | Idea | As vaults grow, a search or tagging mechanism may be needed. |
 | **Task rollback** | Partial | Rollback commands are now captured per-task in `03_TASK_LOG.md`. Automated rollback execution is not yet implemented. |
-| **Parallel execution** | Out of scope | Running tasks on multiple machines simultaneously is not currently supported. |
+| **Parallel execution** | Resolved | Multi-agent orchestration implemented in §12. Sonnet orchestrates; Haiku sub-agents run per-machine tasks in parallel. |
 | **Notifications** | Out of scope | No mechanism for alerting the user of task completion or failure outside the terminal. |
 | **Vault sync / backup** | Idea | Vaults are local files. A git-based sync or backup strategy would improve durability. |
 | **Minimum-privilege sudo** | Idea | `tuneladora ALL=(ALL) NOPASSWD: ALL` is convenient but broad. Scoping to specific commands improves security posture. |
@@ -514,3 +514,93 @@ tools/new_machine.sh my-app --type docker --parent hef-minipc-proxmox
 ```
 
 Follow `ADD_CONTAINER.md` for the complete setup workflow.
+
+---
+
+## 12. Multi-Agent Architecture
+
+### Overview
+
+Tuneladora's file-based, per-machine folder structure is inherently suited for parallel execution. Each machine folder is a self-contained context unit — the LLM reads it, acts on it, and writes results back to it. This maps directly to the sub-agent model: one agent per machine, isolated, stateless, running concurrently.
+
+The orchestrator (Sonnet) owns the global context and user communication. Sub-agents (Haiku) own per-machine SSH execution and vault writes.
+
+```
+User
+  │
+  ▼
+Orchestrator [Sonnet]
+  Reads: CLAUDE.md, CONTEXT.md, REFERENCES.md
+  Decomposes task → per-machine subtasks
+  Launches sub-agents (parallel or sequential per dependencies)
+  Collects structured results
+  Applies vault updates
+  Reports to user
+  │
+  ├── Sub-agent [Haiku] — hef-minipc-proxmox
+  │     Reads: machines/hef-minipc-proxmox/{CLAUDE.md,CONTEXT.md,HIERARCHY.md,vault/}
+  │     Executes: ssh hef-minipc-proxmox "..."
+  │     Returns: status + commands_run + output + vault_updates
+  │
+  ├── Sub-agent [Haiku] — hef-pam
+  │     (same pattern)
+  │
+  └── Sub-agent [Haiku] — hef-nas-4800
+        (same pattern)
+```
+
+### Orchestrator decision tree
+
+```
+Task received
+    │
+    ├─ Involves 1 machine, simple sequential steps?
+    │       → single-agent (no orchestration overhead)
+    │
+    ├─ Involves 2+ machines?
+    │       → launch one Haiku sub-agent per machine in parallel
+    │       → collect results, apply vault updates, report
+    │
+    ├─ Involves 1 machine with parallelizable phases?
+    │   (e.g. Phase 5/D: SSH hardening + discovery + vault writes)
+    │       → launch Haiku sub-agents per phase group
+    │       → coordinate dependencies: hardening before discovery
+    │
+    └─ Task complete, only vault writes remain?
+            → delegate to one Haiku sub-agent
+            → orchestrator continues without waiting if non-blocking
+```
+
+### Canonical parallelism points in existing workflows
+
+| Workflow | Where to parallelize | Sub-agents |
+|----------|---------------------|------------|
+| ADD_MACHINE Phase 5 | Steps 6–8 (discovery, CONTEXT.md, 05_SECURITY.md) | 1 Haiku after connection test passes |
+| ADD_NAS Phase 6 | Same: discovery + vault population | 1 Haiku |
+| ADD_CONTAINER Phase D | Steps 2–3 (discovery + SSH hardening) | 2 Haiku in parallel |
+| Task Execution (§5.2) | Vault Update Loop (§5.3) after task | 1 Haiku |
+| Multi-machine queries | Full per-machine SSH + vault | N Haiku in parallel |
+
+### Sub-agent context loading
+
+Each sub-agent must read these files before acting (in order):
+
+1. `machines/<path>/CLAUDE.md` — machine-specific rules (override global)
+2. `machines/<path>/CONTEXT.md` — OS, purpose, known quirks
+3. `machines/<path>/HIERARCHY.md` — node type, parent, connection model
+4. `machines/<path>/vault/00_INDEX.md` — vault table of contents
+5. Relevant vault notes (typically `01_SYSTEM_INFO.md`, `02_SERVICES.md`, and the last 20 entries of `03_TASK_LOG.md`)
+
+Sub-agents do **not** read the global `CLAUDE.md` directly — the orchestrator embeds the relevant global rules in the sub-agent prompt.
+
+### Vault write coordination
+
+When multiple sub-agents update the same machine's vault concurrently (rare but possible), the orchestrator must serialize the writes. Rule: **collect all sub-agent `vault_updates` payloads, then write them sequentially**, never in parallel writes to the same file.
+
+For different machines' vaults, writes are always independent — parallelize freely.
+
+### When NOT to use sub-agents
+
+- Interactive or ambiguous tasks where the user may redirect mid-execution — keep in the orchestrator.
+- Tasks that require reading the output of step N before deciding step N+1 — sequential, single-agent.
+- Tasks on a single machine with fewer than 3 independent steps — orchestration overhead is not worth it.

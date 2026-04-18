@@ -87,6 +87,8 @@ This asks for the temporary password you set in Phase 3. When done, tell me *"ke
 
 Once the `tuneladora` key is installed, I will:
 
+> **Multi-agent note:** Steps 1–5 are sequential (each depends on the previous). Once step 5 (connection test) passes, steps 6–8 are independent and run as parallel Haiku sub-agents. See SPEC.md §12.
+
 1. **Discover the LAN subnet and harden SSH** — run these locally (the subnet is discovered from the operator's current network interface):
    ```bash
    SUBNET=$(ip -4 addr show scope global | awk '/inet / {split($2,a,"."); print a[1]"."a[2]"."a[3]".*"}' | head -1)
@@ -97,10 +99,13 @@ Once the `tuneladora` key is installed, I will:
 2. **Disable password login** for `tuneladora`: `ssh <name> "sudo passwd -l tuneladora"`.
 4. **Update `~/.ssh/config`** to use `User tuneladora` and `IdentityFile ~/.ssh/tuneladora_<name>`.
 5. **Test the connection**: `ssh <name> "whoami"` → should return `tuneladora`.
-6. **Discover system info** and populate `01_SYSTEM_INFO.md`.
-7. **Populate `CONTEXT.md`** with OS, purpose, network, and any quirks found during discovery.
-8. **Update `05_SECURITY.md`** with SSH key fingerprints and access policies.
-9. **Log the full setup** in `03_TASK_LOG.md`.
+
+   *(If this passes, launch steps 6–8 as parallel Haiku sub-agents.)*
+
+6. **[PARALLEL]** **Discover system info** and populate `01_SYSTEM_INFO.md`.
+7. **[PARALLEL]** **Populate `CONTEXT.md`** with OS, purpose, network, and any quirks found during discovery.
+8. **[PARALLEL]** **Update `05_SECURITY.md`** with SSH key fingerprints and access policies.
+9. **[SEQUENTIAL — after 6–8]** **Log the full setup** in `03_TASK_LOG.md`.
 
 ---
 
