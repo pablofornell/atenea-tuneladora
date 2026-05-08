@@ -49,5 +49,6 @@ Then follow `ADD_MACHINE.md` for the full 5-phase workflow.
 ## Relevant links
 
 - [Obsidian](https://obsidian.md) — The note-taking format used for vaults
-- [SPEC.md](SPEC.md) — Full system specification
 - [ADD_MACHINE.md](ADD_MACHINE.md) — Step-by-step workflow for adding a new machine
+- [ADD_NAS.md](ADD_NAS.md) — Workflow for NAS devices and appliances
+- [ADD_CONTAINER.md](ADD_CONTAINER.md) — Workflow for LXC and Docker containers

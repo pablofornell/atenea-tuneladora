@@ -2,8 +2,6 @@
 
 SSH connection hub operated by an LLM assistant to manage multiple remote servers. The LLM connects via SSH, executes tasks, and maintains persistent memory of each machine through Obsidian-compatible vaults.
 
-See [SPEC.md](SPEC.md) for the full specification.
-
 ## SSH Setup
 
 ### Overview

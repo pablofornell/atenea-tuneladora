@@ -87,7 +87,7 @@ This asks for the temporary password you set in Phase 3. When done, tell me *"ke
 
 Once the `tuneladora` key is installed, I will:
 
-> **Multi-agent note:** Steps 1–5 are sequential (each depends on the previous). Once step 5 (connection test) passes, steps 6–8 are independent and run as parallel Haiku sub-agents. See SPEC.md §12.
+> **Multi-agent note:** Steps 1–5 are sequential (each depends on the previous). Once step 5 (connection test) passes, steps 6–8 are independent and run as parallel Haiku sub-agents. See CLAUDE.md for orchestration details.
 
 1. **Discover the LAN subnet and harden SSH** — run these locally (the subnet is discovered from the operator's current network interface):
    ```bash

@@ -121,7 +121,7 @@ ssh <container-name> "which bash python3 curl 2>/dev/null || true"
 
 Once access is confirmed:
 
-> **Multi-agent note:** Step 1 is sequential (needs Phase B data). Steps 2 and 3 are independent and run as parallel Haiku sub-agents. Steps 4 and 5 are sequential after 2 and 3 complete. See SPEC.md §12.
+> **Multi-agent note:** Step 1 is sequential (needs Phase B data). Steps 2 and 3 are independent and run as parallel Haiku sub-agents. Steps 4 and 5 are sequential after 2 and 3 complete. See CLAUDE.md for orchestration details.
 
 1. **[SEQUENTIAL]** **Update `HIERARCHY.md`** with the real container_id and any connectivity notes:
    ```markdown
