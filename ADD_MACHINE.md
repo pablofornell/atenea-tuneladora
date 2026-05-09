@@ -105,7 +105,9 @@ Once the `tuneladora` key is installed, I will:
 6. **[PARALLEL]** **Discover system info** and populate `01_SYSTEM_INFO.md`.
 7. **[PARALLEL]** **Populate `CONTEXT.md`** with OS, purpose, network, and any quirks found during discovery.
 8. **[PARALLEL]** **Update `05_SECURITY.md`** with SSH key fingerprints and access policies.
-9. **[SEQUENTIAL — after 6–8]** **Log the full setup** in `03_TASK_LOG.md`.
+9. **[SEQUENTIAL — after 6–8]** **Configure automatic security updates** using the OS-appropriate tool (e.g. `unattended-upgrades` on Debian/Ubuntu, `dnf-automatic` on RHEL). Populate `07_UPDATES.md` with the configuration.
+10. **[SEQUENTIAL — after 9]** **Verify or configure a backup job**. If no backup is in scope for this machine, document it explicitly in `06_BACKUPS.md` (as "no backup — intentional"). If a backup is needed, set it up and populate `06_BACKUPS.md`.
+11. **[SEQUENTIAL — after 9–10]** **Log the full setup** in `03_TASK_LOG.md` and update the `## Status` block in `00_INDEX.md` (`backup status` and `auto-updates` fields).
 
 ---
 
@@ -117,4 +119,4 @@ Once the `tuneladora` key is installed, I will:
 | Phase 2: Initial SSH (personal user) | You | SSH key, config entry |
 | Phase 3: Create `tuneladora` user | You | `useradd`, `passwd`, sudoers |
 | Phase 4: Install dedicated key | You | `ssh-copy-id` (needs temp password) |
-| Phase 5: Harden + discover + populate | Me | SSH hardening, config update, system discovery, fill CONTEXT.md |
+| Phase 5: Harden + discover + populate + updates + backups | Me | SSH hardening, config update, system discovery, auto-updates, backup baseline |

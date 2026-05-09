@@ -255,6 +255,7 @@ cat > "$VAULT_DIR/00_INDEX.md" << HEREDOC
 | [[04_NOTES]] | Free-form observations, warnings, scope limits |
 | [[05_SECURITY]] | SSH access policies, user accounts, restrictions |
 | [[06_BACKUPS]] | Backup jobs, retention, restore procedures, credentials location |
+| [[07_UPDATES]] | Auto-update system, maintenance schedule, manual update procedure |
 
 ## Status
 
@@ -262,6 +263,8 @@ cat > "$VAULT_DIR/00_INDEX.md" << HEREDOC
 - Machine type: $MACHINE_TYPE
 - Parent: ${PARENT:-none}
 - Setup status: awaiting setup
+- Backup status: not configured
+- Auto-updates: not configured
 HEREDOC
 
 # ── 01_SYSTEM_INFO.md ──────────────────────────────────────────────────────────
@@ -354,6 +357,8 @@ cat > "$VAULT_DIR/04_NOTES.md" << HEREDOC
 - [ ] System discovered and context files populated
 - [ ] Parent vault (06_CONTAINERS.md) updated${PARENT:+: $PARENT}
 - [ ] REGISTRY.md updated
+- [ ] Backup job configured (06_BACKUPS.md)
+- [ ] Auto-update system configured (07_UPDATES.md)
 HEREDOC
 
 # ── 05_SECURITY.md ─────────────────────────────────────────────────────────────
@@ -393,6 +398,14 @@ cat > "$VAULT_DIR/06_BACKUPS.md" << HEREDOC
 
 > Last updated: $DATE (scaffolded — populate when backups are configured)
 
+## Status
+
+| Field | Value |
+|-------|-------|
+| Backup configured | no |
+| Last verified | *(TBD)* |
+| Offsite copy | *(TBD — yes / no)* |
+
 ## Backup Jobs
 
 *(Populate when a backup job is configured for this machine)*
@@ -431,6 +444,53 @@ cat > "$VAULT_DIR/06_BACKUPS.md" << HEREDOC
 ## History
 
 - $DATE: File scaffolded. No backups configured yet.
+HEREDOC
+
+# ── 07_UPDATES.md ──────────────────────────────────────────────────────────────
+
+cat > "$VAULT_DIR/07_UPDATES.md" << HEREDOC
+# $MACHINE — Updates
+
+> Last updated: $DATE (scaffolded — populate during setup)
+
+## Status
+
+| Field | Value |
+|-------|-------|
+| Auto-updates | not configured |
+| Tool | *(TBD)* |
+| Scope | *(TBD — security only / all packages)* |
+| Schedule | *(TBD)* |
+| Auto-reboot | *(TBD — yes / no / if-needed)* |
+| Last verified | *(TBD)* |
+
+## Configuration
+
+*(Populate when the auto-update system is configured)*
+
+| Field | Value |
+|-------|-------|
+| Config file | *(TBD)* |
+| Service/unit | *(TBD)* |
+| Log location | *(TBD)* |
+| Notification | *(TBD — email / log-only / none)* |
+
+## Manual Update Procedure
+
+*(How to safely run updates on this machine)*
+
+\`\`\`bash
+# Commands go here — e.g. for Debian/Ubuntu:
+# sudo apt update && sudo apt upgrade -y
+\`\`\`
+
+## Maintenance Notes
+
+*(Reboot constraints, maintenance windows, services that need explicit restart)*
+
+## History
+
+- $DATE: File scaffolded. No automatic updates configured yet.
 HEREDOC
 
 # ── Done ───────────────────────────────────────────────────────────────────────
