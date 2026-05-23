@@ -40,32 +40,24 @@ ssh <admin-user>@<ip>
 
 Most NAS systems use password auth by default. Confirm you can connect.
 
-### Phase 3 — Create the `tuneladora` user
+### Phase 3 — Create the `tuneladora` user + install key
 
-This varies by appliance. For UGOS (UGREEN NAS):
-
-1. Open the UGOS admin panel (`http://<ip>`)
-2. Go to **Control Panel → Users**
-3. Create user `tuneladora` with a temporary password
-4. Add `tuneladora` to the **`admin` group** (required for SSH interactive shell in UGOS)
-5. Alternatively, via SSH as admin:
-   ```bash
-   sudo useradd -m -s /bin/bash tuneladora
-   sudo passwd tuneladora
-   sudo usermod -aG admin tuneladora
-   sudo bash -c "echo 'tuneladora ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/tuneladora"
-   sudo chmod 440 /etc/sudoers.d/tuneladora
-   ```
-
-For other appliances: check vendor documentation for creating a sudoer user with SSH access.
-
-### Phase 4 — Install the dedicated SSH key
-
-Same as `ADD_MACHINE.md` Phase 4:
-
+**Agent prepares (locally):**
 ```bash
-ssh-copy-id -i ~/.ssh/tuneladora_<name>.pub tuneladora@<ip>
+bash tools/setup_tuneladora_control.sh --machine <name> --group admin
 ```
+This generates the SSH key and prints the exact command to hand to the admin.
+
+**Admin runs (one command on the NAS, with sudo):**
+```bash
+sudo bash /tmp/setup_tuneladora_target.sh --pubkey 'ssh-ed25519 AAAA...' --group admin
+```
+
+The `--group admin` flag adds `tuneladora` to the `admin` group, which is required for interactive SSH shell access on UGOS. For other appliances, omit the flag unless the vendor requires group membership for SSH.
+
+> **UGOS note:** if `useradd` is not available on the appliance (some firmware versions restrict it), create the user first via the UGOS admin panel (**Control Panel → Users**), add it to the `admin` group there, then run the script with `--pubkey` only — the script is idempotent and will skip user creation if the user already exists.
+
+> **Phase 4 from `ADD_MACHINE.md` is not needed here** — the script installs the public key directly into `authorized_keys`, so `ssh-copy-id` is unnecessary.
 
 ### Phase 5 — Harden and verify
 

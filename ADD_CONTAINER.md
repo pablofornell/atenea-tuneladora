@@ -60,41 +60,32 @@ Record the **container name or ID** — this goes into `HIERARCHY.md`.
 
 ---
 
-## Phase C — Configure Access (Human + LLM)
+## Phase C — Configure Access (LLM for LXC, Human for Docker)
 
 ### For LXC containers
 
-The goal is the same as for any machine: create the `tuneladora` user inside the container and install the SSH key. Use `pct exec` to bootstrap before SSH is available.
+The agent handles the full setup autonomously via `pct exec` on the parent — no human action needed. The parent already has `tuneladora` with `sudo`, so the agent can run all commands directly.
 
-**Step C1 — Create the tuneladora user (Human):**
+**Step C1 — Generate the SSH key (agent, locally):**
 ```bash
-# Execute inside the container via the parent
-ssh <parent-name> "pct exec <vmid> -- bash -c '
-  useradd -m -s /bin/bash tuneladora &&
-  echo tuneladora:TEMP_PASSWORD | chpasswd &&
-  mkdir -p /home/tuneladora/.ssh &&
-  chmod 700 /home/tuneladora/.ssh
-'"
+bash tools/setup_tuneladora_control.sh --machine <container-name> --lxc --vmid <vmid>
+```
+This generates `~/.ssh/tuneladora_<container-name>` and prints the command to run on the parent.
+
+**Step C2 — Bootstrap the container (agent, via SSH to parent):**
+```bash
+scp tools/setup_tuneladora_target.sh <parent-name>:/tmp/
+
+ssh <parent-name> "bash /tmp/setup_tuneladora_target.sh \
+  --pubkey '$(cat ~/.ssh/tuneladora_<container-name>.pub)' \
+  --lxc --vmid <vmid>"
 ```
 
-**Step C2 — Grant sudo (Human):**
-```bash
-ssh <parent-name> "pct exec <vmid> -- bash -c \
-  \"echo 'tuneladora ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/tuneladora\""
-```
+This single command: creates the `tuneladora` user inside the container, configures passwordless sudo, sets up `~/.ssh/`, installs the public key, installs `openssh-server` if missing, and locks the password.
 
-**Step C3 — Ensure SSH daemon is running (Human):**
-```bash
-ssh <parent-name> "pct exec <vmid> -- bash -c 'apt-get install -y openssh-server && systemctl enable --now ssh'"
-```
+**Step C3 — Add SSH config snippet (agent):**
 
-**Step C4 — Install the tuneladora SSH key (Human):**
-
-Add the SSH config snippet from Phase A output to `~/.ssh/config`, then:
-```bash
-ssh-copy-id -i ~/.ssh/tuneladora_<container-name>.pub tuneladora@<container-name>
-```
-This works because `ProxyJump` routes through the parent transparently.
+Add the snippet printed by Phase A to `~/.ssh/config` so the container is reachable as `<container-name>` via `ProxyJump`.
 
 ### For Docker containers
 
