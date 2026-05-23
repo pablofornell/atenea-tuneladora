@@ -38,7 +38,7 @@ machines/
 tools/new_machine.sh my-server
 ```
 
-Then follow `ADD_MACHINE.md` for the full 5-phase workflow.
+Then follow `workflows/ADD_MACHINE.md` for the full 5-phase workflow.
 
 ## Naming Conventions
 
@@ -49,6 +49,6 @@ Then follow `ADD_MACHINE.md` for the full 5-phase workflow.
 ## Relevant links
 
 - [Obsidian](https://obsidian.md) — The note-taking format used for vaults
-- [ADD_MACHINE.md](ADD_MACHINE.md) — Step-by-step workflow for adding a new machine
-- [ADD_NAS.md](ADD_NAS.md) — Workflow for NAS devices and appliances
-- [ADD_CONTAINER.md](ADD_CONTAINER.md) — Workflow for LXC and Docker containers
+- [ADD_MACHINE.md](workflows/ADD_MACHINE.md) — Step-by-step workflow for adding a new machine
+- [ADD_NAS.md](workflows/ADD_NAS.md) — Workflow for NAS devices and appliances
+- [ADD_CONTAINER.md](workflows/ADD_CONTAINER.md) — Workflow for LXC and Docker containers

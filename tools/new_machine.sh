@@ -511,7 +511,7 @@ case "$MACHINE_TYPE" in
     echo "──────────────────────────────────────────"
     echo ""
     echo "Next steps:"
-    echo "  1. Follow ADD_MACHINE.md: configure personal SSH access"
+    echo "  1. Follow workflows/ADD_MACHINE.md: configure personal SSH access"
     echo "  2. Tell Tuneladora: 'SSH ready for $MACHINE'"
     ;;
   lxc)
@@ -528,7 +528,7 @@ case "$MACHINE_TYPE" in
     echo "  ssh $PARENT \"pct exec <vmid> -- ip -4 addr show eth0\""
     echo ""
     echo "Next steps:"
-    echo "  1. Follow ADD_CONTAINER.md: LXC setup workflow"
+    echo "  1. Follow workflows/ADD_CONTAINER.md: LXC setup workflow"
     echo "  2. Update HIERARCHY.md with container_id and IP"
     echo "  3. Tell Tuneladora: 'Container ready for $MACHINE'"
     ;;
@@ -546,7 +546,7 @@ case "$MACHINE_TYPE" in
     echo "  ssh $PARENT \"docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'\""
     echo ""
     echo "Next steps:"
-    echo "  1. Follow ADD_CONTAINER.md: Docker setup workflow"
+    echo "  1. Follow workflows/ADD_CONTAINER.md: Docker setup workflow"
     echo "  2. Update HIERARCHY.md with container_id"
     echo "  3. Tell Tuneladora: 'Container ready for $MACHINE'"
     ;;
