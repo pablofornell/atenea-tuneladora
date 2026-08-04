@@ -139,7 +139,7 @@ Once access is confirmed:
 
 4. **[SEQUENTIAL — after 2 and 3]** **Update the parent's vault** — add the container to `06_CONTAINERS.md` in the parent's vault:
    ```markdown
-   | <container-name> | lxc | 101 | 192.168.1.X | ProxyJump | running | machines/<host>/CTs/LXC/<container-name> |
+   | <container-name> | lxc | 101 | 192.168.0.X (or the actual subnet) | ProxyJump | running | machines/<host>/CTs/LXC/<container-name> |
    ```
 
 5. **[SEQUENTIAL — after 2 and 3]** **Log the setup** in both `<container-folder>/vault/03_TASK_LOG.md` and the parent's `vault/03_TASK_LOG.md`.
